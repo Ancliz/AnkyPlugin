@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'me.ancliz'
-version = '1.0.0-beta1'
+version = '1.0.0-beta2'
 
 def JAVA_LIB = System.getenv('JAVA_LIB')
 
@@ -19,8 +19,6 @@ dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
-    implementation 'org.apache.logging.log4j:log4j-api:2.22.1'
-    implementation 'org.apache.logging.log4j:log4j-core:2.22.1'
     implementation fileTree(dir: JAVA_LIB, include: '*.jar')
 }
 
@@ -36,4 +34,5 @@ jar {
                 'Version': version
         )
     }
+    destinationDirectory = file(JAVA_LIB)
 }
