@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'maven-publish'
 }
 
 group = 'me.ancliz'
@@ -13,13 +14,16 @@ repositories {
         name = "papermc-repo"
         url = "https://repo.papermc.io/repository/maven-public/"
     }
+    maven {
+        url = uri(JAVA_LIB)
+    }
 }
 
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
-    implementation fileTree(dir: JAVA_LIB, include: 'anky-util-0.0.1.jar')
+    implementation 'me.ancliz:anky-util:0.0.1'
 }
 
 test {
@@ -35,4 +39,26 @@ jar {
         )
     }
     destinationDirectory = file(JAVA_LIB)
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            groupId = group
+            artifactId = rootProject.name
+            version = version
+        }
+    }
+    
+    repositories {
+        maven {
+            url = uri(JAVA_LIB)
+        }
+    }
+}
+
+task publishMaven {
+    dependsOn publishMavenJavaPublicationToMavenRepository
 }
