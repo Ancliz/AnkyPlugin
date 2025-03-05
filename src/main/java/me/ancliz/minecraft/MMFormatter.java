@@ -1,5 +1,7 @@
 package me.ancliz.minecraft;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
@@ -77,39 +79,40 @@ public class MMFormatter implements Reloadable, Observer {
     public String help(int page, int totalPages, int maxPageLines) {
         StringBuilder builder = new StringBuilder();
 
-        String line1 = format(D+"---- "+D+"Help: "+ capitalise(plugin) + " "+D+"-- "+D+"Page " +D+ page +D+ "/" +D+ totalPages +D+ " ----\n",
-                                ChatColor.YELLOW, ChatColor.GOLD, ChatColor.YELLOW,
-                                ChatColor.GOLD, ChatColor.RED, ChatColor.GOLD, ChatColor.RED, ChatColor.YELLOW);
-
-        builder.append(line1);
-        List<Command> pluginCommands = commandManager.getTopLevel();        
-        pluginCommands.addAll(commandManager.getLevelOne());
-        pluginCommands.sort(new CommandsComparator());
-        buildPage(builder, pluginCommands, page, maxPageLines);
+        buildHeader(builder, page, totalPages);
+        buildPage(builder, getSortedCommands(), page, maxPageLines);
 
         if(page != totalPages) {
             builder.append(format(D+"Type "+D+"/" + plugin + " help " + (page+1) +D+ " to read the next page.",
-                    ChatColor.GOLD, ChatColor.RED, ChatColor.GOLD)
-            );
+                    ChatColor.GOLD, ChatColor.RED, ChatColor.GOLD));
         }
 
         return builder.toString();
     }
 
+    private List<Command> getSortedCommands() {
+        List<Command> pluginCommands = new ArrayList<>(commandManager.getTopLevel());
+        pluginCommands.addAll(commandManager.getLevelOne());
+        Collections.sort(pluginCommands);
+        return pluginCommands;
+    }
+
+    private void buildHeader(StringBuilder builder, int page, int totalPages) {
+        builder.append(format(D + "---- " + D + "Help: " + capitalise(plugin) + " " + D + "-- " + D + "Page " + D + page + D + "/" + D + totalPages + D + " ----\n",
+                ChatColor.YELLOW, ChatColor.GOLD, ChatColor.YELLOW,
+                ChatColor.GOLD, ChatColor.RED, ChatColor.GOLD, ChatColor.RED, ChatColor.YELLOW));
+    }
+
     private void buildPage(StringBuilder builder, List<Command> commands, int page, int maxPageLines) {
-        int currentLine = 0;        
-        for(int i = page * maxPageLines - maxPageLines; currentLine < maxPageLines; ++i) {
-            try {
-                Command cmd = commands.get(i);
-                String description = cmd.description() == null ? "No information available." : cmd.description();
-                String topLevel = cmd.FULLY_QUALIFIED_NAME.split("\\.")[1];
+        int startIndex = (page - 1) * maxPageLines;
+        int endIndex = Math.min(startIndex + maxPageLines, commands.size());
 
-                builder.append(buildLine(cmd, description, topLevel));
-
-                ++currentLine;
-            } catch(IndexOutOfBoundsException e) {
-                break;
-            }
+        for(int i = startIndex; i < endIndex; i++) {
+            Command cmd = commands.get(i);
+            String description = (cmd.description() != null) ? cmd.description() : "No information available.";
+            String topLevel = cmd.FULLY_QUALIFIED_NAME.split("\\.")[1];
+    
+            builder.append(buildLine(cmd, description, topLevel));
         }
     }
     
@@ -118,8 +121,8 @@ public class MMFormatter implements Reloadable, Observer {
             return format(D+"/"+ topLevel + " " + cmd.name() +D+ ": " +  description + "\n", ChatColor.GOLD, ChatColor.WHITE);
         }
         return format(D+"/"+ cmd.name() +D+ ": " +  description + "\n", ChatColor.GOLD, ChatColor.WHITE);
-
     }
+
     private String capitalise(String w) {
         return w.substring(0, 1).toUpperCase() + w.substring(1);
     }

@@ -7,7 +7,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import me.ancliz.minecraft.exceptions.NotRegisteredException;
 import me.ancliz.util.BinaryState;
 
-public class Command {
+public class Command implements Comparable<Command> {
     private BinaryState enabled;
     public final String FULLY_QUALIFIED_NAME;
     private final String name;
@@ -87,5 +87,10 @@ public class Command {
     public String toString() {
         return String.format("FQN: %s, enabled: %b", FULLY_QUALIFIED_NAME, enabled);
     }
+
+	@Override
+	public int compareTo(Command o) {
+        return FULLY_QUALIFIED_NAME.compareTo(o.FULLY_QUALIFIED_NAME);
+	}
 
 }
