@@ -1,12 +1,10 @@
 package me.ancliz.minecraft;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 import org.bukkit.ChatColor;
-import org.bukkit.configuration.ConfigurationSection;
+import me.ancliz.minecraft.commands.Command;
 import me.ancliz.minecraft.commands.CommandManager;
 import me.ancliz.minecraft.exceptions.MinecraftMessageFormatterException;
 import me.ancliz.util.logging.Logger;
@@ -79,12 +77,15 @@ public class MMFormatter implements Reloadable, Observer {
     public String help(int page, int totalPages, int maxPageLines) {
         StringBuilder builder = new StringBuilder();
 
-        String line1 = format(D+"---- "+D+"Help: "+ capitalise(plugin) + " "+D+"-- "+D+"Page " +D+ page +D+ "/" +D+ totalPages +D+ "----\n",
+        String line1 = format(D+"---- "+D+"Help: "+ capitalise(plugin) + " "+D+"-- "+D+"Page " +D+ page +D+ "/" +D+ totalPages +D+ " ----\n",
                                 ChatColor.YELLOW, ChatColor.GOLD, ChatColor.YELLOW,
                                 ChatColor.GOLD, ChatColor.RED, ChatColor.GOLD, ChatColor.RED, ChatColor.YELLOW);
 
         builder.append(line1);
-        buildPage(builder, commandManager.getCommands(), page, maxPageLines);
+        List<Command> pluginCommands = commandManager.getTopLevel();        
+        pluginCommands.addAll(commandManager.getLevelOne());
+        pluginCommands.sort(new CommandsComparator());
+        buildPage(builder, pluginCommands, page, maxPageLines);
 
         if(page != totalPages) {
             builder.append(format(D+"Type "+D+"/" + plugin + " help " + (page+1) +D+ " to read the next page.",
@@ -95,21 +96,15 @@ public class MMFormatter implements Reloadable, Observer {
         return builder.toString();
     }
 
-    private void buildPage(StringBuilder builder, ConfigurationSection commands, int page, int maxPageLines) {
-        int currentLine = 0;
-        List<String> keys = new ArrayList<String>(commands.getKeys(false));
-        Collections.sort(keys);
-
+    private void buildPage(StringBuilder builder, List<Command> commands, int page, int maxPageLines) {
+        int currentLine = 0;        
         for(int i = page * maxPageLines - maxPageLines; currentLine < maxPageLines; ++i) {
             try {
-                ConfigurationSection cmd = (ConfigurationSection) commands.get(keys.get(i));
+                Command cmd = commands.get(i);
+                String description = cmd.description() == null ? "No information available." : cmd.description();
+                String topLevel = cmd.FULLY_QUALIFIED_NAME.split("\\.")[1];
 
-                String usage = cmd.getString("usage", "");
-
-                builder.append(
-                    format(D+"/"+ plugin + cmd.getName() + usage +D+ ": " + cmd.getString("description") + "\n",
-                            ChatColor.GOLD, ChatColor.WHITE)
-                );
+                builder.append(buildLine(cmd, description, topLevel));
 
                 ++currentLine;
             } catch(IndexOutOfBoundsException e) {
@@ -117,7 +112,14 @@ public class MMFormatter implements Reloadable, Observer {
             }
         }
     }
+    
+    private String buildLine(Command cmd, String description, String topLevel) {
+        if(!topLevel.equals(cmd.name())) {
+            return format(D+"/"+ topLevel + " " + cmd.name() +D+ ": " +  description + "\n", ChatColor.GOLD, ChatColor.WHITE);
+        }
+        return format(D+"/"+ cmd.name() +D+ ": " +  description + "\n", ChatColor.GOLD, ChatColor.WHITE);
 
+    }
     private String capitalise(String w) {
         return w.substring(0, 1).toUpperCase() + w.substring(1);
     }

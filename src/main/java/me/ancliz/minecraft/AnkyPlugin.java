@@ -6,7 +6,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.Map;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.TabCompleter;
@@ -36,11 +35,10 @@ public abstract class AnkyPlugin extends JavaPlugin {
     
     @Override
     public InputStream getResource(String file) {
-        logger.debug();
         try {
             return new FileInputStream(new File(getDataFolder(), file));
         } catch(FileNotFoundException e) {}
-        logger.info("Getting embedded resource '{}'", file);
+        logger.info("File not found on disk, getting embedded resource '{}'", file);
         return super.getResource(file);
     }
 
@@ -49,14 +47,10 @@ public abstract class AnkyPlugin extends JavaPlugin {
     }
 
     public YamlConfiguration getYaml(String file, boolean embedded) {
-        Reader reader;
         if(embedded) { 
-            reader = new InputStreamReader(getEmbeddedResource(file), Charsets.UTF_8);
-        } else { 
-            logger.debug();
-            reader = new InputStreamReader(getResource(file), Charsets.UTF_8);
+            return YamlConfiguration.loadConfiguration(new InputStreamReader(getEmbeddedResource(file), Charsets.UTF_8));
         }
-        return YamlConfiguration.loadConfiguration(reader);
+        return YamlConfiguration.loadConfiguration(new InputStreamReader(getResource(file), Charsets.UTF_8));
     }
 
     public void saveYaml(YamlConfiguration yaml, String file) {
@@ -73,7 +67,7 @@ public abstract class AnkyPlugin extends JavaPlugin {
         commands.forEach(this::setExecutor);
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "null"})
     private void setTabCompleter(String command) throws Exception {
         Class<? extends TabCompleter> clazz = null;
         try {
