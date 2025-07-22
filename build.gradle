@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'me.ancliz'
-version = '1.0.0-beta3'
+version = '0.0.1-beta1'
 
 def JAVA_LIB = System.getenv('JAVA_LIB')
 

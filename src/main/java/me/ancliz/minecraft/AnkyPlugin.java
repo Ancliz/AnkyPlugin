@@ -70,14 +70,15 @@ public abstract class AnkyPlugin extends JavaPlugin {
     @SuppressWarnings({"unchecked", "null"})
     private void setTabCompleter(String command) throws Exception {
         Class<? extends TabCompleter> clazz = null;
+        logger.debug("command: {}", command);
         try {
             clazz = (Class<? extends TabCompleter>) Class.forName(this.getClass().getPackageName() + ".commands.completers.TabCompleter" + command);
-            getCommand(command).setTabCompleter(clazz.getDeclaredConstructor(CommandManager.class).newInstance(commandManager));
+            getCommand(command).setTabCompleter(clazz.getDeclaredConstructor(CommandManager.class, String.class).newInstance(commandManager, command.toLowerCase()));
         } catch(ClassNotFoundException e) {
             logger.warn("No tab completion for " + command + ". Setting to default.");
             clazz = DefaultTabCompleter.class;
         } finally {
-            getCommand(command).setTabCompleter(clazz.getDeclaredConstructor(CommandManager.class).newInstance(commandManager));
+            getCommand(command).setTabCompleter(clazz.getDeclaredConstructor(CommandManager.class, String.class).newInstance(commandManager, command.toLowerCase()));
 
         }
     }

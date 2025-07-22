@@ -21,9 +21,10 @@ public class MMFormatter implements Reloadable, Observer {
     private CommandManager commandManager;
 
     public MMFormatter(String pluginName, CommandManager commandManager) {
-       this.commandManager = commandManager;
-       commandManager.addObserver(this);
-       plugin = pluginName;
+        this.commandManager = commandManager;
+        commandManager.addObserver(this);
+        plugin = pluginName;
+        reload();
     }
 
     @Override
@@ -62,7 +63,7 @@ public class MMFormatter implements Reloadable, Observer {
     }
 
     public String pluginMessage(String message) {
-        return ChatColor.RED + plugin + ": " + ChatColor.WHITE + message;
+        return pluginColour + plugin + ": " + ChatColor.WHITE + message;
     }
     public String error(String message) {
         return ChatColor.RED + "Error: " + ChatColor.DARK_RED + message;

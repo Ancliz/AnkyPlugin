@@ -14,20 +14,20 @@ import me.ancliz.util.logging.Logger;
 @SuppressWarnings("deprecation")
 public class CommandManager extends Observable {
     Logger logger = new Logger(getClass());
-    private ConfigurationSection commands;
-    private Map<String, Command> commands2;
+    private ConfigurationSection commandsSection;
+    private Map<String, Command> commandsMap;
 
     public CommandManager() {
         reload();
     }
 
     public void reload() {
-        commands = AnkyPlugin.getInstance().getYaml("plugin.yml", true).getConfigurationSection("commands");
-        Preconditions.checkNotNull(commands, "Commands entry in plugin.yml not found.");
-        commands2 = commands2 == null ? new HashMap<>() : commands2;
+        commandsSection = AnkyPlugin.getInstance().getYaml("plugin.yml", true).getConfigurationSection("commands");
+        Preconditions.checkNotNull(commandsSection, "Commands entry in plugin.yml not found.");
+        commandsMap = commandsMap == null ? new HashMap<>() : commandsMap;
 
-        for(String cmd : commands.getKeys(false)) {
-            createCommandInstance(commands.getConfigurationSection(cmd), cmd);
+        for(String cmd : commandsSection.getKeys(false)) {
+            createCommandInstance(commandsSection.getConfigurationSection(cmd), cmd);
         }
 
         logger.info("Notifying Observers");
@@ -42,21 +42,18 @@ public class CommandManager extends Observable {
 
         ConfigurationSection subCommands = command.getConfigurationSection("sub-commands");
         List<Command> subCommandsList = new ArrayList<>();
+        String commandPath = asCommandsMapPath(command);
+        Command cmd = new Command(command, commandPath);
 
-        Command cmd = new Command(command);
-        String commandPath = asCommands2Path(command);
-        logger.debug("{} - adding command to commands2 with path: {}", commandName, commandPath);
-        commands2.put(commandPath, cmd);
+        commandsMap.put(commandPath, cmd);
 
         if(subCommands != null) {
             Set<String> subCommandsKeys = subCommands.getKeys(false);
 
             for(String sub : subCommandsKeys) {
-
-                String subPath = asCommands2Path(subCommands.getConfigurationSection(sub));
-                logger.debug("{} - creating subcommand with path: {}", commandName, subPath);
+                String subPath = asCommandsMapPath(subCommands.getConfigurationSection(sub));
                 createCommandInstance(command.getConfigurationSection("sub-commands." + sub), sub);
-                Command subCmd = commands2.get(subPath);
+                Command subCmd = commandsMap.get(subPath);
 
                 if(subCmd != null) {
                     subCommandsList.add(subCmd);
@@ -67,40 +64,28 @@ public class CommandManager extends Observable {
         cmd.setSubCommands(subCommandsList);
     }
 
-    public String asCommands2Path(ConfigurationSection command) {
-        return command.getCurrentPath().replaceFirst("commands.", "");
+    public String asCommandsMapPath(ConfigurationSection command) {
+        return command.getCurrentPath().replaceFirst("commands.", "").replaceAll(".sub-commands", "");
     }
 
-    public List<Command> getTopLevel() {
-        List<Command> list = new ArrayList<>();
-        commands2.entrySet().stream()
-            .filter(entry -> entry.getKey().matches("^[a-zA-Z0-9]+$"))
-            .forEach(entry -> list.add(entry.getValue()));
-        return list;
+    public String asCommandsMapPath(String path) {
+        return path.replaceFirst("commands.", "").replaceAll(".sub-commands", "");
+    }
+    
+    public ConfigurationSection getCommandsSection() {
+        return commandsSection;
     }
 
-    public List<Command> getLevelOne() {
-        List<Command> list = new ArrayList<>();
-        commands2.entrySet().stream()
-            .filter(entry -> entry.getKey().matches("^[a-zA-Z0-9]+\\.sub-commands\\.[a-zA-Z0-9]+$"))
-            .forEach(entry -> list.add(entry.getValue()));
-        return list;
-    }
-
-    public ConfigurationSection getCommands() {
-        return commands;
-    }
-
-    public List<Command> getCommands2() {
-        return new ArrayList<>(commands2.values());
+    public List<Command> getCommandsMap() {
+        return new ArrayList<>(commandsMap.values());
     }
 
     public ConfigurationSection getCommand(String path) {
-        return getCommand(commands, path);
+        return getCommand(commandsSection, path);
     }
 
     public Command getCommandInstance(String path) {
-        return commands2.get(path);
+        return commandsMap.get(path);
     }
 
     public ConfigurationSection getCommand(ConfigurationSection root, String path) {
@@ -112,51 +97,11 @@ public class CommandManager extends Observable {
     }
 
     public ConfigurationSection getSubCommands(String path) {
-        return commands.getConfigurationSection(path + ".sub-commands");
-    }
-
-    public ConfigurationSection findCommand(String cmd, String[] args) {
-        return findCommand(commands, cmd, args);
-    }
-
-    public ConfigurationSection findCommand(ConfigurationSection root, String cmd, String[] args) {
-        ConfigurationSection command = null;
-        String path = cmd + ".sub-commands." + String.join(".sub-commands.", args);
-        try {
-            do {
-                // logger.debug("path: {}, cmd: {}, args: {}", path, cmd, Arrays.toString(args));
-
-                command = root.getConfigurationSection(path);
-                path = path.substring(0, path.lastIndexOf(".sub-commands."));
-
-                // logger.debug("updated path: {}", path);
-            } while(command == null);
-        } catch(IndexOutOfBoundsException e) {
-            command = root.getConfigurationSection(cmd);
-        }
-        
-        // logger.debug("command: {}", command);
-        return command;
-    }
+        return commandsSection.getConfigurationSection(path + ".sub-commands");
+    }   
     
-    /*
-    public Command findCommand2(Command next) {
-        if(next == null) {
-            return next;
-        }
-
-        for(String cmd : next.subCommands()) {
-            if(cmd.equals(next.name())) {
-                next = commands2.get(cmd);
-            }
-        }
-
-        return findCommand2(next);
-    }
-    */
-
     public List<String> getCommandsList(String path) {
-        return commands.getConfigurationSection(path).getKeys(false).stream().toList();
+        return commandsSection.getConfigurationSection(path).getKeys(false).stream().toList();
     }
 
     public void registerHandlers(Map<String, CommandHandler> commandHandlers) {
@@ -164,45 +109,64 @@ public class CommandManager extends Observable {
     }
 
     public void registerHandler(String command, CommandHandler handler) {
-        Preconditions.checkNotNull(commands.getConfigurationSection(command),
+        Preconditions.checkNotNull("commands." + commandsMap.get(command).FULLY_QUALIFIED_NAME,
                 "Invalid fully qualified command name {}, handler not set - is it in plugin.yml?",
                 command);
-        commands2.get(command).setHandler(handler);
+        commandsMap.get(command).setHandler(handler);
     }
 
+    public Command findCommandInMap(String path) {
+        Command command = null;
+        try {
+            do {
+                command = commandsMap.get(path);
+                path = path.substring(0, path.lastIndexOf("."));
+            } while(command == null);
+        } catch(IndexOutOfBoundsException e) {}
 
-    public void printCommands2() {
+        return command; 
+    }
+
+    public List<Command> getTopLevel() {
+        List<Command> list = new ArrayList<>();
+        commandsMap.entrySet().stream()
+            .filter(entry -> entry.getKey().matches("^[a-zA-Z0-9]+$"))
+            .forEach(entry -> list.add(entry.getValue()));
+        return list;
+    }
+
+    public List<Command> getLevelOne() {
+        List<Command> list = new ArrayList<>();
+        commandsMap.entrySet().stream()
+            .filter(entry -> entry.getKey().matches("^[a-zA-Z0-9]+\\.[a-zA-Z0-9]+$"))
+            .forEach(entry -> list.add(entry.getValue()));
+        return list;
+    }
+
+    public ConfigurationSection findCommand(String cmd, String[] args) {
+        return findCommand(commandsSection, cmd, args);
+    }
+
+    public ConfigurationSection findCommand(ConfigurationSection root, String cmd, String[] args) {
+        ConfigurationSection command = null;
+        String path = cmd + ".sub-commands." + String.join(".sub-commands.", args);
+        try {
+            do {
+                command = root.getConfigurationSection(path);
+                path = path.substring(0, path.lastIndexOf(".sub-commands."));
+            } while(command == null);
+        } catch(IndexOutOfBoundsException e) {
+            command = root.getConfigurationSection(cmd);
+        }
+        return command;
+    }
+
+    public void printCommandsMap() {
         StringBuilder sb = new StringBuilder();
-        commands2.forEach((k, v) -> {
+        commandsMap.forEach((k, v) -> {
             sb.append(k + ": " + v.name() + "\n");
         });
         logger.debug(sb.toString());
-    }
-
-    @SuppressWarnings("unused")
-    @Deprecated(forRemoval = true)
-    private void commandPathsMethod() {
-        Set<String> commandPaths = commands.getKeys(true);
-
-        for(String path : commandPaths) {
-
-            logger.trace("path: {}", path);
-            Object entry = commands.get(path);
-
-            if(entry instanceof ConfigurationSection) {
-
-                ConfigurationSection command = (ConfigurationSection) entry;
-
-                if(!command.getName().equals("sub-commands")) {
-
-                    if(commands2.get(path) == null) {
-
-                        logger.debug("adding command: {}", path);
-                        commands2.put(path, new Command(command));
-                    }
-                }
-            }
-        }
     }
 
 }
