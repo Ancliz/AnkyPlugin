@@ -13,6 +13,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import com.google.common.base.Charsets;
 import me.ancliz.minecraft.commands.CommandManager;
+import me.ancliz.minecraft.commands.DefaultCommandHandler;
 import me.ancliz.minecraft.commands.DefaultTabCompleter;
 import me.ancliz.util.logging.Logger;
 
@@ -64,7 +65,13 @@ public abstract class AnkyPlugin extends JavaPlugin {
     @SuppressWarnings("deprecation")
     private void setupCommands() {
         Map<String, Map<String, Object>> commands = getDescription().getCommands();
-        commands.forEach(this::setExecutor);
+        commands.forEach((command, tree) -> {
+            try {
+                setExecutor(command, tree);
+            } catch(Exception e) {
+                logger.error("Error loading commands.", e);
+            }
+        });
     }
 
     @SuppressWarnings({"unchecked", "null"})
@@ -75,7 +82,7 @@ public abstract class AnkyPlugin extends JavaPlugin {
             clazz = (Class<? extends TabCompleter>) Class.forName(this.getClass().getPackageName() + ".commands.completers.TabCompleter" + command);
             getCommand(command).setTabCompleter(clazz.getDeclaredConstructor(CommandManager.class, String.class).newInstance(commandManager, command.toLowerCase()));
         } catch(ClassNotFoundException e) {
-            logger.warn("No tab completion for " + command + ". Setting to default.");
+            logger.warn("No tab completion for '" + command + "'. Setting to default.");
             clazz = DefaultTabCompleter.class;
         } finally {
             getCommand(command).setTabCompleter(clazz.getDeclaredConstructor(CommandManager.class, String.class).newInstance(commandManager, command.toLowerCase()));
@@ -83,17 +90,19 @@ public abstract class AnkyPlugin extends JavaPlugin {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void setExecutor(String command, Map<String, Object> tree) {
+    @SuppressWarnings({"unchecked", "null"})
+    private void setExecutor(String command, Map<String, Object> tree) throws Exception {
+        Class<? extends CommandExecutor> clazz = null;
         command = command.substring(0, 1).toUpperCase() + command.substring(1);
         try {
-            Class<? extends CommandExecutor> clazz = (Class<? extends CommandExecutor>) Class.forName(this.getClass().getPackageName() + ".commands.Command" + command);
+            clazz = (Class<? extends CommandExecutor>) Class.forName(this.getClass().getPackageName() + ".commands.Command" + command);
             getCommand(command).setExecutor(clazz.getDeclaredConstructor(CommandManager.class).newInstance(commandManager));
             setTabCompleter(command);
         } catch(ClassNotFoundException e) {
-            logger.error("Command Executor class could not be found for " + command);
-        } catch(Exception e) {
-            logger.error("Error loading commands.", e);
+            logger.error("Command Executor class could not be found for '" + command + "'. Setting to default. This will be breaking.");
+            clazz = DefaultCommandHandler.class;
+        } finally {
+            getCommand(command).setExecutor(clazz.getDeclaredConstructor(CommandManager.class).newInstance(commandManager));
         }
     }
 
