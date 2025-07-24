@@ -1,4 +1,4 @@
-package me.ancliz.minecraft;
+package me.ancliz.minecraft.messaging;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 import org.bukkit.ChatColor;
+import me.ancliz.minecraft.AnkyPlugin;
+import me.ancliz.minecraft.Reloadable;
 import me.ancliz.minecraft.commands.Command;
 import me.ancliz.minecraft.commands.CommandManager;
 import me.ancliz.minecraft.exceptions.MinecraftMessageFormatterException;
@@ -17,8 +19,12 @@ import me.ancliz.util.logging.Logger;
 @SuppressWarnings("deprecation")
 public class MMFormatter implements Reloadable, Observer {
     private final Logger logger = new Logger(this);
-    private final String plugin;
     private CommandManager commandManager;
+    public ChatColor pluginColour;
+    private final String plugin;
+
+    /** Delimiter for ChatColor substitution */
+    public final char D = '␚';
 
     public MMFormatter(String pluginName, CommandManager commandManager) {
         this.commandManager = commandManager;
@@ -35,10 +41,6 @@ public class MMFormatter implements Reloadable, Observer {
             logger.debug("Updated.");
         }
     }
-
-    /** Delimiter for ChatColor substitution */
-    public final char D = '␚';
-    public ChatColor pluginColour;
 
     public String format(String message, ChatColor ... colours) {
         int count = message.length() - message.replace(String.valueOf(D), "").length();
@@ -65,6 +67,7 @@ public class MMFormatter implements Reloadable, Observer {
     public String pluginMessage(String message) {
         return pluginColour + plugin + ": " + ChatColor.WHITE + message;
     }
+
     public String error(String message) {
         return ChatColor.RED + "Error: " + ChatColor.DARK_RED + message;
     }
@@ -129,7 +132,7 @@ public class MMFormatter implements Reloadable, Observer {
     }
 
     public String green(String message) {
-        return format(message, ChatColor.GREEN);
+        return ChatColor.GREEN + message;
     }
 
     public String success(String message) {
@@ -137,7 +140,7 @@ public class MMFormatter implements Reloadable, Observer {
     }
 
     public String red(String message) {
-        return format(message, ChatColor.RED);
+        return ChatColor.RED + message;
     }
 
     @Override
