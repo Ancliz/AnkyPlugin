@@ -37,6 +37,7 @@ public class CommandManager extends Observable {
 
     private void createCommandInstance(ConfigurationSection command, String commandName) {
         if(command == null) {
+            logger.debug("no ConfigurationSection for command '{}'", commandName);
             return;
         }
 
@@ -44,7 +45,7 @@ public class CommandManager extends Observable {
         List<Command> subCommandsList = new ArrayList<>();
         String commandPath = asCommandsMapPath(command);
         Command cmd = new Command(command, commandPath);
-
+        logger.trace("{} - adding command to commandsMap with path: {}", commandName, commandPath);
         commandsMap.put(commandPath, cmd);
 
         if(subCommands != null) {
@@ -52,6 +53,7 @@ public class CommandManager extends Observable {
 
             for(String sub : subCommandsKeys) {
                 String subPath = asCommandsMapPath(subCommands.getConfigurationSection(sub));
+                logger.trace("{} - creating subcommand with path: {}", commandName, subPath);
                 createCommandInstance(command.getConfigurationSection("sub-commands." + sub), sub);
                 Command subCmd = commandsMap.get(subPath);
 

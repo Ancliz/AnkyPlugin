@@ -13,7 +13,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import com.google.common.base.Charsets;
 import me.ancliz.minecraft.commands.CommandManager;
-import me.ancliz.minecraft.commands.DefaultCommandHandler;
+import me.ancliz.minecraft.commands.DefaultCommandExecutor;
 import me.ancliz.minecraft.commands.DefaultTabCompleter;
 import me.ancliz.util.logging.Logger;
 
@@ -100,7 +100,7 @@ public abstract class AnkyPlugin extends JavaPlugin {
             setTabCompleter(command);
         } catch(ClassNotFoundException e) {
             logger.error("Command Executor class could not be found for '" + command + "'. Setting to default. This will be breaking.");
-            clazz = DefaultCommandHandler.class;
+            clazz = DefaultCommandExecutor.class;
         } finally {
             getCommand(command).setExecutor(clazz.getDeclaredConstructor(CommandManager.class).newInstance(commandManager));
         }
@@ -110,4 +110,5 @@ public abstract class AnkyPlugin extends JavaPlugin {
         return instance;
     }
 
+    abstract public void reload();
 }

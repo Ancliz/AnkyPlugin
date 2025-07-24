@@ -9,10 +9,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.configuration.ConfigurationSection;
-import me.ancliz.util.logging.Logger;
 
 public class DefaultTabCompleter implements TabCompleter {
- private Logger logger = new Logger(this.getClass());
     private static ConfigurationSection root;
     private CommandManager commandManager;
     private String rootPath;
