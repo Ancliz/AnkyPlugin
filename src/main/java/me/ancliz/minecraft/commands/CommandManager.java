@@ -74,47 +74,36 @@ public class CommandManager extends Observable {
         return path.replaceFirst("commands.", "").replaceAll(".sub-commands", "");
     }
     
-    public ConfigurationSection getCommandsSection() {
-        return commandsSection;
+    public List<String> getCommandsNameList(String path) {
+        return commandsMap.keySet().stream().filter(key -> key.contains(path)).toList();
     }
 
     public List<Command> getCommandsMap() {
         return new ArrayList<>(commandsMap.values());
     }
 
-    public ConfigurationSection getCommand(String path) {
-        return getCommand(commandsSection, path);
-    }
-
-    public Command getCommandInstance(String path) {
+    public Command getCommand(String path) {
         return commandsMap.get(path);
     }
 
-    public ConfigurationSection getCommand(ConfigurationSection root, String path) {
-        return root.getConfigurationSection(path);
+    public List<Command> getSubCommands(String path) {
+        return commandsMap.get(path).subCommands();
     }
-
-    public ConfigurationSection getSubCommands(ConfigurationSection root, String path) {
-        return root.getConfigurationSection(path + ".sub-commands");
-    }
-
-    public ConfigurationSection getSubCommands(String path) {
-        return commandsSection.getConfigurationSection(path + ".sub-commands");
-    }   
     
-    public List<String> getCommandsList(String path) {
-        return commandsSection.getConfigurationSection(path).getKeys(false).stream().toList();
+    public List<Command> getTopLevel() {
+        return getLevel(0);
     }
 
-    public void registerHandlers(Map<String, CommandHandler> commandHandlers) {
-        commandHandlers.forEach(this::registerHandler);
+    public List<Command> getLevelOne() {
+        return getLevel(1);
     }
 
-    public void registerHandler(String command, CommandHandler handler) {
-        Preconditions.checkNotNull("commands." + commandsMap.get(command).FULLY_QUALIFIED_NAME,
-                "Invalid fully qualified command name {}, handler not set - is it in plugin.yml?",
-                command);
-        commandsMap.get(command).setHandler(handler);
+    public List<Command> getLevel(int level) {
+        String regex = "^[a-zA-Z0-9]+(\\.[a-zA-Z0-9]+){0," + (level - 1) + "$}";
+        return commandsMap.entrySet().stream()
+            .filter(entry -> entry.getKey().matches(regex))
+            .map(Map.Entry::getValue)
+            .toList();
     }
 
     public Command findCommandInMap(String path) {
@@ -127,22 +116,6 @@ public class CommandManager extends Observable {
         } catch(IndexOutOfBoundsException e) {}
 
         return command; 
-    }
-
-    public List<Command> getTopLevel() {
-        List<Command> list = new ArrayList<>();
-        commandsMap.entrySet().stream()
-            .filter(entry -> entry.getKey().matches("^[a-zA-Z0-9]+$"))
-            .forEach(entry -> list.add(entry.getValue()));
-        return list;
-    }
-
-    public List<Command> getLevelOne() {
-        List<Command> list = new ArrayList<>();
-        commandsMap.entrySet().stream()
-            .filter(entry -> entry.getKey().matches("^[a-zA-Z0-9]+\\.[a-zA-Z0-9]+$"))
-            .forEach(entry -> list.add(entry.getValue()));
-        return list;
     }
 
     public ConfigurationSection findCommand(String cmd, String[] args) {
@@ -163,12 +136,27 @@ public class CommandManager extends Observable {
         return command;
     }
 
-    public void printCommandsMap() {
-        StringBuilder sb = new StringBuilder();
-        commandsMap.forEach((k, v) -> {
-            sb.append(k + ": " + v.name() + "\n");
-        });
-        logger.debug(sb.toString());
+    public ConfigurationSection getCommandsSection() {
+        return commandsSection;
+    }
+
+    public ConfigurationSection getCommandSection(String path) {
+        return getCommandSection(commandsSection, path);
+    }
+
+    public ConfigurationSection getCommandSection(ConfigurationSection root, String path) {
+        return root.getConfigurationSection(path);
+    }
+
+    public void registerHandlers(Map<String, CommandHandler> commandHandlers) {
+        commandHandlers.forEach(this::registerHandler);
+    }
+
+    public void registerHandler(String command, CommandHandler handler) {
+        Preconditions.checkNotNull("commands." + commandsMap.get(command).FULLY_QUALIFIED_NAME,
+                "Invalid fully qualified command name {}, handler not set - is it in plugin.yml?",
+                command);
+        commandsMap.get(command).setHandler(handler);
     }
 
 }

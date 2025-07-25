@@ -24,7 +24,7 @@ public class DefaultCommandExecutor implements CommandExecutor {
     }
 
     private Optional<String> findAlias(String command, String aliasCandidate) {
-        return commandManager.getCommandInstance(command)
+        return commandManager.getCommand(command)
             .subCommands()
             .stream()
             .filter(sub -> sub.aliases().contains(aliasCandidate))

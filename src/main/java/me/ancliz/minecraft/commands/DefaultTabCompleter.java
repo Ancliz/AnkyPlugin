@@ -18,7 +18,7 @@ public class DefaultTabCompleter implements TabCompleter {
 
     public DefaultTabCompleter(CommandManager commandManager, String commandName) {
         this.commandManager = commandManager;
-        root = commandManager.getCommand(commandName + ".sub-commands");
+        root = commandManager.getCommandSection(commandName + ".sub-commands");
         rootPath = root.getCurrentPath();
         reload();
     }
@@ -36,7 +36,7 @@ public class DefaultTabCompleter implements TabCompleter {
     }
 
     protected Set<String> getCompletions(String[] ancestors) {
-        ConfigurationSection commandSection = commandManager.getCommand(constructPath(ancestors));
+        ConfigurationSection commandSection = commandManager.getCommandSection(constructPath(ancestors));
         if(commandSection != null) {
             return Optional.ofNullable(commandSection.getConfigurationSection("sub-commands"))
                 .map(cmds -> cmds.getKeys(false))

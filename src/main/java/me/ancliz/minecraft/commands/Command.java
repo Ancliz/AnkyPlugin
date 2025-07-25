@@ -75,13 +75,9 @@ public class Command implements Comparable<Command> {
     }
 
     public boolean invoke(CommandSender sender, String[] args) {
-        if(handler == null) {
-            throw new NotRegisteredException("CommandHandler has not been registered for " + FULLY_QUALIFIED_NAME.replaceFirst("commands.", ""));
-        } else if(enabled) {
-            return handler.invoke(sender, args);
-        } else {
-            throw new CommandDisabledException();
-        }
+        if(handler == null) { throw new NotRegisteredException("CommandHandler has not been registered for " + PATH); } 
+        else if(!enabled)   { throw new CommandDisabledException();                                                   }
+        return handler.invoke(sender, args);
     }
 
     public void setHandler(CommandHandler handler) {
@@ -90,7 +86,7 @@ public class Command implements Comparable<Command> {
     
     @Override
     public String toString() {
-        return String.format("FQN: %s, enabled: %b", FULLY_QUALIFIED_NAME, enabled);
+        return String.format("{path: %s, enabled: %b}", PATH, enabled);
     }
 
 	@Override
