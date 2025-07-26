@@ -1,57 +1,51 @@
 package me.ancliz.minecraft.commands;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import org.bukkit.command.Command;
+import java.util.stream.Collectors;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.configuration.ConfigurationSection;
 
 public class DefaultTabCompleter implements TabCompleter {
-    private static ConfigurationSection root;
     private CommandManager commandManager;
-    private String rootPath;
-    Set<String> completions;
-
+    private List<String> completions;
+    
+    
     public DefaultTabCompleter(CommandManager commandManager, String commandName) {
         this.commandManager = commandManager;
-        root = commandManager.getCommandSection(commandName + ".sub-commands");
-        rootPath = root.getCurrentPath();
         reload();
     }
 
-    public void reload() {}
-
-    protected String constructPath(String[] ancestors) {
-        ancestors = Arrays.stream(ancestors).filter(s -> !s.isEmpty()).toArray(String[]::new);
-        String path = rootPath.replaceFirst("commands.","") + ".";
-        path = ancestors.length > 1
-            ? path + String.join(".sub-commands.", ancestors)
-            : path + ancestors[0];
-
-        return path;
+    protected String constructPath(String command, String[] ancestors) {
+        String path = Arrays.stream(ancestors)
+            .filter(s -> !s.isEmpty())
+            .collect(Collectors.joining("."));
+        return path.isEmpty() ? command : command + "." + path;   
     }
 
-    protected Set<String> getCompletions(String[] ancestors) {
-        ConfigurationSection commandSection = commandManager.getCommandSection(constructPath(ancestors));
-        if(commandSection != null) {
-            return Optional.ofNullable(commandSection.getConfigurationSection("sub-commands"))
-                .map(cmds -> cmds.getKeys(false))
-                .orElseGet(HashSet::new);
-        }
-
-        return new HashSet<>();
+    protected List<String> getCompletions(String commandStr, String[] ancestors) {
+        Command cmd = commandManager.getCommand(constructPath(commandStr, ancestors));
+        return Optional.ofNullable(cmd)
+            .map(command -> command.subCommands()
+                .stream()
+                .map(Command::name)
+                .toList())
+            .orElse(new ArrayList<>());
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
-        String current = args[args.length-1];
-        String[] ancestors = Arrays.copyOfRange(args, 0, args.length-1);
-        completions = args.length == 1 ? root.getKeys(false) : getCompletions(ancestors);
-        return completions.stream().filter(cmd -> cmd.toLowerCase().startsWith(current.toLowerCase())).toList();
+    public List<String> onTabComplete(CommandSender sender, org.bukkit.command.Command command, String label, String[] args) {
+        String current = args[args.length-1].toLowerCase();
+        String[] ancestors = Arrays.copyOf(args, args.length-1);
+        completions = getCompletions(command.getName(), ancestors);
+        return completions.stream()
+            .filter(cmd -> cmd.toLowerCase()
+            .startsWith(current))
+            .toList();
     }
+    
+    public void reload() {}
     
 }
