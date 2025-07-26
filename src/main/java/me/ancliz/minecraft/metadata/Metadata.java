@@ -1,9 +1,10 @@
-package me.ancliz.minecraft;
+package me.ancliz.minecraft.metadata;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
+import org.bukkit.World;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.metadata.Metadatable;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -13,7 +14,7 @@ public class Metadata {
     private static Logger logger = new Logger(Metadata.class);
     private static JavaPlugin plugin;
 
-    
+
     public Metadata(JavaPlugin plugin) {
         Metadata.plugin = plugin;
     }
@@ -55,6 +56,14 @@ public class Metadata {
 
     public static <T extends MetadataValue> MapBuilder<T> mapBuilder(BiFunction<JavaPlugin, Object, T> factory) {
         return new MapBuilder<>(factory);
+    }
+
+    public static String getWorldGroup(World world) {
+        return Metadata.getOrDefault(plugin, world, "group", "world");
+    }
+
+    public static String getWorldBaseName(World world) {
+        return Metadata.getOrDefault(plugin, world, "base-name", "world");
     }
 
 }
