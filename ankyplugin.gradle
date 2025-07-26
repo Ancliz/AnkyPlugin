@@ -1,0 +1,80 @@
+/*
+ * This file should be added to your project's build.gradle.
+ * Save this file wherever you want, but apply to your build.gralde as follows:
+ *
+ * apply from: "path/to/this/script/ankyplugin.gradle"
+ *
+ * OUT_DIR is not defined here, but should be defined in your build.gradle, or rename to the variable you use for
+ * where your project builds to.
+ * 
+ * Modify this file however you desire.
+ *
+ */
+
+import org.yaml.snakeyaml.DumperOptions
+import org.yaml.snakeyaml.Yaml
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.yaml:snakeyaml:2.3"
+    }
+}
+
+// Merge AnkyPlugin config.yml and the plugin"s config.yml
+// Save to src/main/resources - this cannot be saved to build/resources/main
+task mergeConfigFiles {
+    doLast {
+        println "Merging configs..."
+        def configFile = file("src/main/resources/config.yml")
+        def ankyPlugin = configurations.runtimeClasspath.find { dep ->
+            dep.name.startsWith("AnkyPlugin") && dep.name.endsWith(".jar")
+        }
+
+        def jarFileInputStream = new java.util.zip.ZipFile(ankyPlugin)
+        def ankyEntry = jarFileInputStream.getEntry("config.yml")
+
+        if(ankyEntry) {
+            def ankyConfigStream = jarFileInputStream.getInputStream(ankyEntry)
+            def ankyConfig = new Yaml().load(ankyConfigStream)
+            def resourceConfig = new Yaml().load(configFile.newInputStream())
+
+            def mergedConfig = resourceConfig + ankyConfig 
+
+            DumperOptions options = new DumperOptions()
+            options.setIndent(2)
+            options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK)
+
+            def outputFile = file("src/main/resources/config.yml")
+            outputFile.parentFile.mkdirs()
+
+            new Yaml(options).dump(mergedConfig, new FileWriter(outputFile))
+            println "Done."
+
+        } else {
+            println "config.yml not found in AnkyPlugin JAR - skipping"
+        }
+    }
+}
+
+tasks.shadowJar {
+    doLast {
+        println "Build located in: " + OUT_DIR
+    }
+    destinationDirectory = file(OUT_DIR)
+    minimize()
+    archiveClassifier = ""
+}
+
+processResources.dependsOn mergeConfigFiles
+
+processResources {
+    def props = [version: version]
+    inputs.properties props
+    filteringCharset = "UTF-8"
+    filesMatching("**/*.yml") {
+        expand(project.properties)
+    }
+}
