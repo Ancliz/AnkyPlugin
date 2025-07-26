@@ -18,9 +18,9 @@ public class Command implements Comparable<Command> {
     private List<Command> subCommands;
     private CommandHandler handler;
 
-    public Command(ConfigurationSection command, String path) {
-        this.FULLY_QUALIFIED_NAME = command.getCurrentPath();
-        this.PATH = path;
+    public Command(ConfigurationSection command, String fullyQualifiedName) {
+        this.FULLY_QUALIFIED_NAME = fullyQualifiedName;
+        this.PATH = command.getCurrentPath();
         this.name = command.getName();
         this.aliases = command.getStringList("aliases");
         this.description = command.getString("description");
@@ -28,9 +28,9 @@ public class Command implements Comparable<Command> {
         this.enabled = command.getBoolean("enabled", true);
     }
 
-    public Command(ConfigurationSection command, String path, List<Command> subCommands) {
-        this.FULLY_QUALIFIED_NAME = command.getCurrentPath();
-        this.PATH = path;
+    public Command(ConfigurationSection command, String fullyQualifiedName, List<Command> subCommands) {
+        this.FULLY_QUALIFIED_NAME = fullyQualifiedName;
+        this.PATH = command.getCurrentPath();
         this.name = command.getName();
         this.aliases = command.getStringList("aliases");
         this.description = command.getString("description");
@@ -75,7 +75,7 @@ public class Command implements Comparable<Command> {
     }
 
     public boolean invoke(CommandSender sender, String[] args) {
-        if(handler == null) { throw new NotRegisteredException("CommandHandler has not been registered for " + PATH); } 
+        if(handler == null) { throw new NotRegisteredException("CommandHandler has not been registered for " + FULLY_QUALIFIED_NAME); } 
         else if(!enabled)   { throw new CommandDisabledException();                                                   }
         return handler.invoke(sender, args);
     }
@@ -86,7 +86,7 @@ public class Command implements Comparable<Command> {
     
     @Override
     public String toString() {
-        return String.format("{path: %s, enabled: %b}", PATH, enabled);
+        return String.format("{FQN: %s, enabled: %b}", FULLY_QUALIFIED_NAME, enabled);
     }
 
 	@Override

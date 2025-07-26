@@ -28,7 +28,7 @@ public class CommandManager extends Observable {
         commandsSection = AnkyPlugin.getInstance().getYaml("plugin.yml", true).getConfigurationSection("commands");
         Preconditions.checkNotNull(commandsSection, "Commands entry in plugin.yml not found.");
         commandsMap = commandsMap == null ? new HashMap<>() : commandsMap;
-        
+
         for(String cmd : commandsSection.getKeys(false)) {
             createCommandInstance(commandsSection.getConfigurationSection(cmd), cmd);
         }
@@ -39,8 +39,8 @@ public class CommandManager extends Observable {
     }
 
     private void createCommandInstance(ConfigurationSection command, String commandName) {
-        String path = asCommandsMapPath(command);
-        Command cmd = new Command(command, path);
+        String fullyQualifiedName = asCommandsMapPath(command);
+        Command cmd = new Command(command, fullyQualifiedName);
 
         List<Command> subCommandsList = Optional.ofNullable(command.getConfigurationSection("sub-commands"))
             .map(section -> section.getKeys(false))
@@ -50,18 +50,18 @@ public class CommandManager extends Observable {
             .filter(Objects::nonNull)
             .toList();
 
-        logger.trace("{} - adding command to commandsMap with path: {}", commandName, path);
+        logger.trace("{} - adding command to commandsMap with path: {}", commandName, fullyQualifiedName);
         cmd.setSubCommands(subCommandsList);
-        commandsMap.put(path, cmd);
+        commandsMap.put(fullyQualifiedName, cmd);
     }
 
     private Command processSubCommand(ConfigurationSection parentCommand, String key, String parentName) {
         return Optional.ofNullable(parentCommand.getConfigurationSection("sub-commands." + key))
             .map(subSection -> {
-                String path = asCommandsMapPath(subSection);
-                logger.trace("{} - creating subcommand with path: {}", parentName, path);
+                String fullyQualifiedName = asCommandsMapPath(subSection);
+                logger.trace("{} - creating subcommand with path: {}", parentName, fullyQualifiedName);
                 createCommandInstance(subSection, key);
-                return commandsMap.get(path);
+                return commandsMap.get(fullyQualifiedName);
             }).orElse(null);
 }
 
@@ -135,8 +135,8 @@ public class CommandManager extends Observable {
     }
 
     public void registerHandler(String command, CommandHandler handler) {
-        Preconditions.checkNotNull("commands." + commandsMap.get(command).FULLY_QUALIFIED_NAME,
-                "Invalid fully qualified command name {}, handler not set - is it in plugin.yml?",
+        Preconditions.checkNotNull(commandsMap.get(command),
+                "Invalid fully qualified command name %s, handler not set - is it in plugin.yml?",
                 command);
         commandsMap.get(command).setHandler(handler);
     }
