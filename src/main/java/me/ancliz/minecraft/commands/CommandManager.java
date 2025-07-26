@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Observable;
+import java.util.Optional;
 import java.util.Set;
 import org.bukkit.configuration.ConfigurationSection;
 import com.google.common.base.Preconditions;
@@ -17,6 +19,7 @@ public class CommandManager extends Observable {
     private ConfigurationSection commandsSection;
     private Map<String, Command> commandsMap;
 
+
     public CommandManager() {
         reload();
     }
@@ -25,7 +28,7 @@ public class CommandManager extends Observable {
         commandsSection = AnkyPlugin.getInstance().getYaml("plugin.yml", true).getConfigurationSection("commands");
         Preconditions.checkNotNull(commandsSection, "Commands entry in plugin.yml not found.");
         commandsMap = commandsMap == null ? new HashMap<>() : commandsMap;
-
+        
         for(String cmd : commandsSection.getKeys(false)) {
             createCommandInstance(commandsSection.getConfigurationSection(cmd), cmd);
         }
@@ -36,35 +39,32 @@ public class CommandManager extends Observable {
     }
 
     private void createCommandInstance(ConfigurationSection command, String commandName) {
-        if(command == null) {
-            logger.debug("no ConfigurationSection for command '{}'", commandName);
-            return;
-        }
+        String path = asCommandsMapPath(command);
+        Command cmd = new Command(command, path);
 
-        ConfigurationSection subCommands = command.getConfigurationSection("sub-commands");
-        List<Command> subCommandsList = new ArrayList<>();
-        String commandPath = asCommandsMapPath(command);
-        Command cmd = new Command(command, commandPath);
-        logger.trace("{} - adding command to commandsMap with path: {}", commandName, commandPath);
-        commandsMap.put(commandPath, cmd);
+        List<Command> subCommandsList = Optional.ofNullable(command.getConfigurationSection("sub-commands"))
+            .map(section -> section.getKeys(false))
+            .stream()
+            .flatMap(Set::stream)
+            .map(sub -> processSubCommand(command, sub, commandName))
+            .filter(Objects::nonNull)
+            .toList();
 
-        if(subCommands != null) {
-            Set<String> subCommandsKeys = subCommands.getKeys(false);
-
-            for(String sub : subCommandsKeys) {
-                String subPath = asCommandsMapPath(subCommands.getConfigurationSection(sub));
-                logger.trace("{} - creating subcommand with path: {}", commandName, subPath);
-                createCommandInstance(command.getConfigurationSection("sub-commands." + sub), sub);
-                Command subCmd = commandsMap.get(subPath);
-
-                if(subCmd != null) {
-                    subCommandsList.add(subCmd);
-                }
-            }
-        }
-
+        logger.trace("{} - adding command to commandsMap with path: {}", commandName, path);
         cmd.setSubCommands(subCommandsList);
+        commandsMap.put(path, cmd);
     }
+
+    private Command processSubCommand(ConfigurationSection parentCommand, String key, String parentName) {
+        return Optional.ofNullable(parentCommand.getConfigurationSection("sub-commands." + key))
+            .map(subSection -> {
+                String path = asCommandsMapPath(subSection);
+                logger.trace("{} - creating subcommand with path: {}", parentName, path);
+                createCommandInstance(subSection, key);
+                return commandsMap.get(path);
+            }).orElse(null);
+}
+
 
     public String asCommandsMapPath(ConfigurationSection command) {
         return command.getCurrentPath().replaceFirst("commands.", "").replaceAll(".sub-commands", "");
@@ -99,7 +99,7 @@ public class CommandManager extends Observable {
     }
 
     public List<Command> getLevel(int level) {
-        String regex = "^[a-zA-Z0-9]+(\\.[a-zA-Z0-9]+){0," + (level - 1) + "$}";
+        String regex = "^[a-zA-Z0-9]+(\\.[a-zA-Z0-9]+){0," + level + "}$";
         return commandsMap.entrySet().stream()
             .filter(entry -> entry.getKey().matches(regex))
             .map(Map.Entry::getValue)
@@ -116,24 +116,6 @@ public class CommandManager extends Observable {
         } catch(IndexOutOfBoundsException e) {}
 
         return command; 
-    }
-
-    public ConfigurationSection findCommand(String cmd, String[] args) {
-        return findCommand(commandsSection, cmd, args);
-    }
-
-    public ConfigurationSection findCommand(ConfigurationSection root, String cmd, String[] args) {
-        ConfigurationSection command = null;
-        String path = cmd + ".sub-commands." + String.join(".sub-commands.", args);
-        try {
-            do {
-                command = root.getConfigurationSection(path);
-                path = path.substring(0, path.lastIndexOf(".sub-commands."));
-            } while(command == null);
-        } catch(IndexOutOfBoundsException e) {
-            command = root.getConfigurationSection(cmd);
-        }
-        return command;
     }
 
     public ConfigurationSection getCommandsSection() {
