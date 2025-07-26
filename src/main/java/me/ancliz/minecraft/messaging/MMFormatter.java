@@ -26,6 +26,7 @@ public class MMFormatter implements Reloadable, Observer {
     /** Delimiter for ChatColor substitution */
     public final char D = '␚';
 
+    
     public MMFormatter(String pluginName, CommandManager commandManager) {
         this.commandManager = commandManager;
         commandManager.addObserver(this);

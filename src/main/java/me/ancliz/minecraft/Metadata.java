@@ -13,6 +13,7 @@ public class Metadata {
     private static Logger logger = new Logger(Metadata.class);
     private static JavaPlugin plugin;
 
+    
     public Metadata(JavaPlugin plugin) {
         Metadata.plugin = plugin;
     }

@@ -17,7 +17,8 @@ public class Command implements Comparable<Command> {
     private String usage = "";
     private List<Command> subCommands;
     private CommandHandler handler;
-
+    
+    
     public Command(ConfigurationSection command, String fullyQualifiedName) {
         this.FULLY_QUALIFIED_NAME = fullyQualifiedName;
         this.PATH = command.getCurrentPath();

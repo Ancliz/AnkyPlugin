@@ -22,6 +22,7 @@ public abstract class AnkyPlugin extends JavaPlugin {
     protected static AnkyPlugin instance;
     protected CommandManager commandManager;
 
+    
     protected void setLogger(AnkyPlugin plugin) {
         logger = new Logger(plugin.getClass());
     }

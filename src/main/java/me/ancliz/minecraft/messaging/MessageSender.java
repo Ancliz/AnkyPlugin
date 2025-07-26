@@ -13,11 +13,6 @@ public class MessageSender {
         formatter = new MMFormatter(AnkyPlugin.getInstance().getName(), commandManager);
     }
 
-    // public void sendMessage(CommandSender sender, String formattedMessage) {
-    //     String finalMessage = (sender instanceof Player) ? formattedMessage : formattedMessage.replaceAll(""+formatter.D, "");
-    //     sender.sendMessage(finalMessage);
-    // }
-
     public void sendMessage(CommandSender sender, String message, MMFormat format) {
         String finalMessage = (sender instanceof Player) ? format.apply(message) : message;
         sender.sendMessage(finalMessage);  

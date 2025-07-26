@@ -17,6 +17,7 @@ public class DefaultCommandExecutor implements CommandExecutor {
     protected MessageSender messageSender;
     protected MMFormatter formatter;
 
+    
     public DefaultCommandExecutor(CommandManager commandManager) {
         this.commandManager = commandManager;
         messageSender = new MessageSender(commandManager);
