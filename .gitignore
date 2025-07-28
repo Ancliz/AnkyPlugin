@@ -1,9 +1,12 @@
 .idea
 .vscode/
+.gradle
 bin/
 temp/
 build/
-.gradle
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+
+old.gradle
+dump/
