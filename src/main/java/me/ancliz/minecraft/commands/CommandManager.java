@@ -138,6 +138,7 @@ public class CommandManager extends Observable {
         Preconditions.checkNotNull(commandsMap.get(command),
                 "Invalid fully qualified command name %s, handler not set - is it in plugin.yml?",
                 command);
+        logger.trace("Registering handler for '{}'", command);
         commandsMap.get(command).setHandler(handler);
     }
 

@@ -1,5 +1,8 @@
 package me.ancliz.minecraft.commands;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Optional;
 import org.bukkit.command.CommandExecutor;
@@ -20,6 +23,7 @@ public class DefaultCommandExecutor implements CommandExecutor {
     
     public DefaultCommandExecutor(CommandManager commandManager) {
         this.commandManager = commandManager;
+        registerHandlers();
         messageSender = new MessageSender(commandManager);
         formatter = new MMFormatter(AnkyPlugin.getInstance().getName(), commandManager);
     }
@@ -82,6 +86,33 @@ public class DefaultCommandExecutor implements CommandExecutor {
         return args.length == 1
             ? new String[0]
             : Arrays.copyOfRange(args, commandTokenised.length-1, args.length);
+    }
+
+    protected void registerHandlers() {
+        Method[] methods = getClass().getDeclaredMethods();
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        
+        try {
+            for(Method method : methods) {
+                CommandMapping mapping = method.getAnnotation(CommandMapping.class);
+
+                if(mapping != null) {
+                    method.setAccessible(true);
+                    MethodHandle handler = lookup.unreflect(method);
+
+                    commandManager.registerHandler(mapping.value(), (sender, args) -> {
+                        try {
+                            return (boolean) handler.invoke(this, sender, args);
+                        } catch(Throwable t) {
+                            t.printStackTrace();
+                            return false;
+                        }
+                    });
+                }
+            }
+        } catch(IllegalAccessException e ){
+            e.printStackTrace();
+        }
     }
 
 }
