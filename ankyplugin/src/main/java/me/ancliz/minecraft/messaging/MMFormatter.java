@@ -115,17 +115,9 @@ public class MMFormatter implements Reloadable, Observer {
         for(int i = startIndex; i < endIndex; i++) {
             Command cmd = commands.get(i);
             String description = (cmd.description() != null) ? cmd.description() : "No information available.";
-            String topLevel = cmd.FULLY_QUALIFIED_NAME.split("\\.")[1];
-    
-            builder.append(buildLine(cmd, description, topLevel));
+            String qualifiedName = cmd.FULLY_QUALIFIED_NAME.replaceAll("\\.", " ");
+            builder.append(format(D+"/"+ qualifiedName +D+ ": " +  description + "\n", ChatColor.GOLD, ChatColor.WHITE));
         }
-    }
-    
-    private String buildLine(Command cmd, String description, String topLevel) {
-        if(!topLevel.equals(cmd.name())) {
-            return format(D+"/"+ topLevel + " " + cmd.name() +D+ ": " +  description + "\n", ChatColor.GOLD, ChatColor.WHITE);
-        }
-        return format(D+"/"+ cmd.name() +D+ ": " +  description + "\n", ChatColor.GOLD, ChatColor.WHITE);
     }
 
     private String capitalise(String w) {

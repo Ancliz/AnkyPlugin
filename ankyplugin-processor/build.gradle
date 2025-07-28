@@ -1,0 +1,41 @@
+plugins {
+    id "java"
+}
+
+version = "0.0.1"
+
+dependencies {
+    compileOnly "com.google.code.findbugs:jsr305:3.0.2"
+    compileOnly "me.ancliz:AnkyPlugin:0.1.0"
+    implementation "me.ancliz:AnkyPlugin-annotations:0.0.1" // Keep as implementation for availabilty to plugins to use in their annotationProcessor
+    implementation "com.google.auto.service:auto-service:1.1.1"
+    annotationProcessor "com.google.auto.service:auto-service:1.1.1"
+}
+
+
+jar {
+    archiveBaseName.set("AnkyPlugin-processor")
+    manifest {
+        attributes(
+            "Author": "Ancliz",
+            "Version": version
+        )
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = "AnkyPlugin-processor"
+            groupId = group
+            version = version
+        }
+    }
+
+    repositories {
+        maven {
+            url = uri(System.getenv("JAVA_LIB"))
+        }
+    }
+}

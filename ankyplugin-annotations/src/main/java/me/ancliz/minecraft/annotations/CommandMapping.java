@@ -1,4 +1,4 @@
-package me.ancliz.minecraft.commands;
+package me.ancliz.minecraft.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

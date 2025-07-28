@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import me.ancliz.minecraft.AnkyPlugin;
+import me.ancliz.minecraft.annotations.CommandMapping;
 import me.ancliz.minecraft.exceptions.CommandDisabledException;
 import me.ancliz.minecraft.exceptions.NotRegisteredException;
 import me.ancliz.minecraft.messaging.MMFormatter;

@@ -1,0 +1,28 @@
+version = "0.0.1"
+
+jar {
+    archiveBaseName.set("AnkyPlugin-annotations")
+    manifest {
+        attributes(
+            "Author": "Ancliz",
+            "Version": version
+        )
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = "AnkyPlugin-annotations"
+            groupId = group
+            version = version
+        }
+    }
+
+    repositories {
+        maven {
+            url = uri(System.getenv("JAVA_LIB"))
+        }
+    }
+}

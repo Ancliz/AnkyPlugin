@@ -1,2 +1,2 @@
-rootProject.name = 'AnkyPlugin'
-
+rootProject.name = "AnkyPlugin"
+include "AnkyPlugin", "AnkyPlugin-processor", "AnkyPlugin-annotations"
