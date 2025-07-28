@@ -54,7 +54,7 @@ public class DefaultCommandExecutor implements CommandExecutor {
 
         if(command == null) return false;
 
-        String[] commandArgs = parseArguments(command.PATH.split("\\."), args);
+        String[] commandArgs = parseArguments(command.FULLY_QUALIFIED_NAME.split("\\."), args);
 
         if(!invokeCommand(sender, command, commandArgs)) {
             messageSender.sendMessage(sender, command.usage(), formatter::pluginMessage);
@@ -73,7 +73,7 @@ public class DefaultCommandExecutor implements CommandExecutor {
             messageSender.sendMessage(sender, "This command is unavailable due to an error.", formatter::error);
             logger.error("Command {} has no registered handler. This is not a configuration error, " +
                 "there is a fundamental failure in the plugin implementation. Contact the plugin vendor for a fix.",
-                command.PATH);
+                command.FULLY_QUALIFIED_NAME);
             return true;
         }
     }
