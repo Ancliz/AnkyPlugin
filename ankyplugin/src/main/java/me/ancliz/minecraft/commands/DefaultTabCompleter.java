@@ -13,7 +13,7 @@ public class DefaultTabCompleter implements TabCompleter {
     private List<String> completions;
     
     
-    public DefaultTabCompleter(CommandManager commandManager, String commandName) {
+    public DefaultTabCompleter(CommandManager commandManager) {
         this.commandManager = commandManager;
         reload();
     }
