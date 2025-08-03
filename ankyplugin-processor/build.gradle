@@ -2,13 +2,15 @@ plugins {
     id "java"
 }
 
-version = "0.0.1"
+version = "0.0.2"
 
 dependencies {
     compileOnly "com.google.code.findbugs:jsr305:3.0.2"
     compileOnly "me.ancliz:AnkyPlugin:0.1.0"
-    implementation "me.ancliz:AnkyPlugin-annotations:0.0.1" // Keep as implementation for availabilty to plugins to use in their annotationProcessor
+    implementation "me.ancliz:AnkyPlugin-annotations:0.0.2" // Keep as implementation for availabilty to plugins to use in their annotationProcessor
     implementation "com.google.auto.service:auto-service:1.1.1"
+    implementation "org.yaml:snakeyaml:2.4"
+    implementation "me.ancliz:anky-util:0.0.1"
     annotationProcessor "com.google.auto.service:auto-service:1.1.1"
 }
 

@@ -36,7 +36,7 @@ public class CommandHandlerProcessor extends AbstractProcessor {
                 }
             }
         }
-        return true;
+        return false;
     }
 
     private boolean isValidMethodSignature(ExecutableElement method) {

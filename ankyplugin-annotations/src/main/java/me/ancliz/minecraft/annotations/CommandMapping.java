@@ -9,6 +9,10 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CommandMapping {
 
-    String value();
+    String fullyQualifiedName();
+    String description() default "";
+    String usage() default "";
+    String[] aliases() default {};
+    String[] topLevelAliases() default {};
     
 }
