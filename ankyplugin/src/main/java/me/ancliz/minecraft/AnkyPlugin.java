@@ -58,10 +58,9 @@ public abstract class AnkyPlugin extends JavaPlugin {
     }
 
     public YamlConfiguration getYaml(String file, boolean embedded) {
-        if(embedded) { 
-            return YamlConfiguration.loadConfiguration(new InputStreamReader(getEmbeddedResource(file), Charsets.UTF_8));
-        }
-        return YamlConfiguration.loadConfiguration(new InputStreamReader(getResource(file), Charsets.UTF_8));
+        return embedded
+        ? YamlConfiguration.loadConfiguration(new InputStreamReader(getEmbeddedResource(file), Charsets.UTF_8))
+        : YamlConfiguration.loadConfiguration(new InputStreamReader(getResource(file), Charsets.UTF_8));
     }
 
     public void saveYaml(YamlConfiguration yaml, String file) {
@@ -124,7 +123,9 @@ public abstract class AnkyPlugin extends JavaPlugin {
 
             for(ClassInfo classInfo : filtered) {
                 AnnotationInfo anno = classInfo.getAnnotationInfo(annotationClass);
-                String command = (String) anno.getParameterValues().getValue("value");
+                String value = (annotationClass.equals(CommandExecutor.class)) ? "name" : "fullyQualifiedName";
+                String command = (String) anno.getParameterValues().getValue(value);
+                logger.debug("value: {}, command: {}", value, command);
                 Class<? extends T> clazz = classInfo.loadClass(targetType);
                 PluginCommand pluginCommand = getCommand(command);
                 logger.trace("Setting {} for {}: {}", targetType.getSimpleName(), command, clazz.getSimpleName());

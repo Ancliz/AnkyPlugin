@@ -21,3 +21,9 @@ subprojects {
         }
     }
 }
+
+task publishAll {
+    dependsOn project(":AnkyPlugin-annotations").tasks.publish
+    dependsOn project("AnkyPlugin").tasks.publish
+    dependsOn project("AnkyPlugin-processor").tasks.publish
+}
