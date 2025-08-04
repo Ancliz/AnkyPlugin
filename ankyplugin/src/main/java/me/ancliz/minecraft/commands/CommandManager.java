@@ -18,6 +18,7 @@ public class CommandManager extends Observable {
     Logger logger = new Logger(getClass());
     private ConfigurationSection commandsSection;
     private Map<String, Command> commandsMap;
+    private Map<String, Command> topLevelAliases;
 
 
     public CommandManager() {
@@ -28,6 +29,7 @@ public class CommandManager extends Observable {
         commandsSection = AnkyPlugin.getInstance().getYaml("plugin.yml", true).getConfigurationSection("commands");
         Preconditions.checkNotNull(commandsSection, "Commands entry in plugin.yml not found.");
         commandsMap = commandsMap == null ? new HashMap<>() : commandsMap;
+        topLevelAliases = topLevelAliases == null ? new HashMap<>() : topLevelAliases;
 
         for(String cmd : commandsSection.getKeys(false)) {
             createCommandInstance(commandsSection.getConfigurationSection(cmd), cmd);
@@ -52,6 +54,20 @@ public class CommandManager extends Observable {
 
         logger.trace("{} - adding command to commandsMap with path: {}", commandName, fullyQualifiedName);
         cmd.setSubCommands(subCommandsList);
+
+        Object topAliases = command.get("top-level-aliases");
+        if(topAliases instanceof String[] aliases) {
+            for(String alias : aliases) {
+                logger.trace("Adding top level alias '{}' for '{}'", alias, fullyQualifiedName);
+
+                Object existing = topLevelAliases.putIfAbsent(alias, cmd);
+                if(existing != null) {
+                    logger.warn("Command '{}' attempted to map top level alias '{}' but it is already mapped to '{}' - aborting",
+                                fullyQualifiedName, alias, existing);
+                }
+            }
+        }
+
         commandsMap.put(fullyQualifiedName, cmd);
     }
 
@@ -116,6 +132,10 @@ public class CommandManager extends Observable {
         } catch(IndexOutOfBoundsException e) {}
 
         return command; 
+    }
+
+    public Command resolveTopLevelAlias(String alias) {
+        return topLevelAliases.get(alias);
     }
 
     public ConfigurationSection getCommandsSection() {

@@ -29,7 +29,7 @@ public class DefaultCommandExecutor implements CommandExecutor {
         formatter = new MMFormatter(AnkyPlugin.getInstance().getName(), commandManager);
     }
 
-    private Optional<String> findAlias(String command, String aliasCandidate) {
+    private Optional<String> resolveCommand(String command, String aliasCandidate) {
         return commandManager.getCommand(command)
             .subCommands()
             .stream()
@@ -38,26 +38,26 @@ public class DefaultCommandExecutor implements CommandExecutor {
             .findFirst();
     }
 
-    private String[] resolveAliases(String command, String[] args) {
+    private String[] substituteAlias(String command, String[] args) {
         if(args.length == 0) return args;
 
-        return findAlias(command, args[0]).map(alias -> {
-                args[0] = alias;
+        return resolveCommand(command, args[0]).map(cmd -> {
+                args[0] = cmd;
                 return args;
             }).orElse(args);
     }
 
     @Override
     public boolean onCommand(CommandSender sender, org.bukkit.command.Command bukkitCommand, String label, String[] args) {
-        args = resolveAliases(
+        args = substituteAlias(
             bukkitCommand.getName(),
             Arrays.stream(args).filter(s -> !s.isEmpty()).toArray(String[]::new)
         );
-        
-        String path = bukkitCommand.getName() + "." + String.join(".", args);
-        Command command = commandManager.findCommandInMap(path);
+
+        Command command = commandManager.findCommandInMap(bukkitCommand.getName() + "." + String.join(".", args));
 
         if(command == null) return false;
+        
 
         String[] commandArgs = parseArguments(command.FULLY_QUALIFIED_NAME.split("\\."), args);
 
@@ -101,7 +101,7 @@ public class DefaultCommandExecutor implements CommandExecutor {
                     method.setAccessible(true);
                     MethodHandle handler = lookup.unreflect(method);
 
-                    commandManager.registerHandler(mapping.value(), (sender, args) -> {
+                    commandManager.registerHandler(mapping.fullyQualifiedName(), (sender, args) -> {
                         try {
                             return (boolean) handler.invoke(this, sender, args);
                         } catch(Throwable t) {
