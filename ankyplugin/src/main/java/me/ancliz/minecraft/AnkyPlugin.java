@@ -90,6 +90,10 @@ public abstract class AnkyPlugin extends JavaPlugin {
             e.printStackTrace();
         }
     }
+    
+    private String asYamlPath(String path) {
+        return path.replaceAll("\\.", ".sub-commands.");
+    }
 
     private void setupCommands() {
         try {
@@ -179,11 +183,76 @@ public abstract class AnkyPlugin extends JavaPlugin {
         
         return all;
     }
+
+    private Collection<LiteralCommandNode<CommandSourceStack>> buildCommandTree(List<CommandSpec<CommandSourceStack>> specs) {
+        Map<String, LiteralCommandNode<CommandSourceStack>> roots = new LinkedHashMap<>();
+        Map<String, CommandNode<CommandSourceStack>> nodes = new HashMap<>();
+        for(CommandSpec<CommandSourceStack> spec : specs) {
+            createBrigadierCommands(roots, nodes, spec);
+        }
+        return roots.values();
+    }
+
+    private void registerBrigadierCommands() {
+        List<CommandSpec<CommandSourceStack>> specs = loadSpecsFromProviders();
+        Collection<LiteralCommandNode<CommandSourceStack>> roots = buildCommandTree(specs);
+        Map<String, BrigadierCommand<CommandSourceStack>> brigadierCommands = new HashMap<>();
+        YamlConfiguration yaml = getYaml("commands.yml", false);
+
+        logger.trace("Registering commands...");
+
+        for(CommandSpec<CommandSourceStack> spec : specs) {
+            String p = asYamlPath(spec.path());
+            logger.trace("path: {}", p);
+            ConfigurationSection section = yaml.getConfigurationSection(p);
+
+            if(section == null) {
+                logger.error("No configuration section for command {}", spec.path());
+                continue;
+            }
+
+            brigadierCommands.put(spec.path(), new BrigadierCommand<>(section, spec.path()));
+            logger.trace("Created {}", brigadierCommands.get(spec.path()));
+        }
+       
+        getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
+            for(LiteralCommandNode<CommandSourceStack> root : roots) {
+                var command = brigadierCommands.get(root.getName());
+                String desc = command != null ? command.description() : "";
+                List<String> al = command != null ? command.aliases() : List.of();
+
+                logger.trace("Registering {} with [aliases: {} desc: {}]", root.getName(), root, desc);
+                event.registrar().register(root, desc, al);
+                printChildren(root, 0);
+            }
+        });
+    }
+
+    private void createBrigadierCommands(
+        Map<String, LiteralCommandNode<CommandSourceStack>> roots,
+        Map<String, CommandNode<CommandSourceStack>> nodes,
+        CommandSpec<CommandSourceStack> spec) {
+
+        // TODO Auto-generated method stub
+
+        throw new UnsupportedOperationException("Unimplemented method 'createBrigadierCommands'");
+    }
     
     public static AnkyPlugin getInstance() {
         return instance;
     }
 
     abstract public void reload();
+
+    private void printChildren(CommandNode<CommandSourceStack> node, int i) {
+        StringBuilder indent = new StringBuilder();
+        for(int j = 0; j < i; ++j) {
+           indent.append("\t"); 
+        }
+        logger.debug(i + " " + indent + "" + node);
+        for(CommandNode<CommandSourceStack> n : node.getChildren()) {
+            printChildren(n, ++i);
+        }
+    }
 
 }
