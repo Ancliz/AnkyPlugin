@@ -7,21 +7,41 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import com.google.common.base.Charsets;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType.StringType;
+import com.mojang.brigadier.builder.ArgumentBuilder;
+import com.mojang.brigadier.tree.CommandNode;
+import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.github.classgraph.AnnotationInfo;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.ScanResult;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.Commands;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.ancliz.minecraft.annotations.CommandExecutor;
 import me.ancliz.minecraft.annotations.TabCompleter;
+import me.ancliz.minecraft.commands.BrigadierCommand;
 import me.ancliz.minecraft.commands.CommandManager;
+import me.ancliz.minecraft.commands.CommandMappingsProvider;
+import me.ancliz.minecraft.commands.CommandSpec;
 import me.ancliz.minecraft.commands.DefaultCommandExecutor;
 import me.ancliz.minecraft.commands.DefaultTabCompleter;
 import me.ancliz.util.logging.Logger;
@@ -49,7 +69,7 @@ public abstract class AnkyPlugin extends JavaPlugin {
         try {
             return new FileInputStream(new File(getDataFolder(), file));
         } catch(FileNotFoundException e) {}
-        logger.info("File not found on disk, getting embedded resource '{}'", file);
+            logger.info("File not found on disk, getting embedded resource '{}'", file);
         return super.getResource(file);
     }
 
@@ -144,6 +164,22 @@ public abstract class AnkyPlugin extends JavaPlugin {
         return present;
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private List<CommandSpec<CommandSourceStack>> loadSpecsFromProviders() {
+        List<CommandSpec<CommandSourceStack>> all = new ArrayList<>();
+        ServiceLoader<CommandMappingsProvider> loader =
+            ServiceLoader.load(CommandMappingsProvider.class, this.getClassLoader());
+
+        logger.info("Loading commands from providers...");
+
+        for(CommandMappingsProvider provider : loader) {
+            CommandMappingsProvider<CommandSourceStack> cmp = (CommandMappingsProvider<CommandSourceStack>) provider;
+            all.addAll(cmp.getSpecs());
+        }
+        
+        return all;
+    }
+    
     public static AnkyPlugin getInstance() {
         return instance;
     }
