@@ -12,6 +12,9 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.tools.JavaFileObject;
 import com.google.auto.service.AutoService;
@@ -20,6 +23,7 @@ import com.google.auto.service.AutoService;
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 @SupportedAnnotationTypes("me.ancliz.minecraft.annotations.BrigadierCommandMapping")
 public class BrigadierCommandMappingProcessor extends AbstractProcessor {
+    
     private static final class Mapping {
         final String root;
         final String path;
@@ -45,6 +49,26 @@ public class BrigadierCommandMappingProcessor extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
 
         return false;
+    }
+    
+    private List<? extends AnnotationValue> getHandlerArgTypes(ExecutableElement method, Class<?> annoType, String argsElement) {
+        for(AnnotationMirror anno : method.getAnnotationMirrors()) {
+            if(!((TypeElement) anno.getAnnotationType().asElement())
+                    .getQualifiedName().contentEquals(annoType.getName())) {
+                continue;
+            }
+
+            for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : anno.getElementValues().entrySet()) {
+                if(entry.getKey().getSimpleName().contentEquals(argsElement)) {
+
+                    @SuppressWarnings("unchecked")
+                    List<? extends AnnotationValue> list = (List<? extends AnnotationValue>) entry.getValue().getValue();
+                    return list;
+                }
+            }
+        }
+
+        return List.of();
     }
 
     private void generateRegistry(List<Mapping> mappings) throws IOException {
