@@ -232,10 +232,85 @@ public abstract class AnkyPlugin extends JavaPlugin {
         Map<String, LiteralCommandNode<CommandSourceStack>> roots,
         Map<String, CommandNode<CommandSourceStack>> nodes,
         CommandSpec<CommandSourceStack> spec) {
+        String[] parts = spec.path().split("\\.");
+        String rootName = parts[0];
 
-        // TODO Auto-generated method stub
+        CommandNode<CommandSourceStack> root =
+            roots.computeIfAbsent(rootName, n -> Commands.literal(n).build());
 
-        throw new UnsupportedOperationException("Unimplemented method 'createBrigadierCommands'");
+        nodes.putIfAbsent(rootName, root);
+
+        CommandNode<CommandSourceStack> current = root;
+        String path = rootName;
+        String lastCommand = rootName;
+
+        logger.warn("path: {}, lastCommand: {}", path, lastCommand);
+
+        for(int i = 1; i < parts.length; ++i) {
+            lastCommand = parts[i];
+            path = path + "." + lastCommand;
+
+            CommandNode<CommandSourceStack> existing = nodes.get(path);
+
+            if(existing != null) {
+                logger.trace("{} exists, skipping ({})", path, spec.path());
+                current = existing;
+                continue;
+            }
+        }
+
+        logger.warn("path: {}, lastCommand: {}", path, lastCommand);
+
+        if(lastCommand.equals(rootName)) {
+            CommandNode<CommandSourceStack> node = root;
+            var child = attachArgsAndHandler(node, spec);
+            roots.put(rootName, (LiteralCommandNode<CommandSourceStack>) child);
+        } else {
+            CommandNode<CommandSourceStack> node = Commands.literal(lastCommand).build();
+            var child = attachArgsAndHandler(node, spec);
+
+            logger.debug("(" + spec.path() + ") current: " + current);
+
+            current.addChild(child);
+            current = child;
+
+            logger.debug("(" + spec.path() + ") current: " + current);
+        }
+        
+        nodes.put(path, current);  
+    }
+
+    private CommandNode<CommandSourceStack> attachArgsAndHandler(CommandNode<CommandSourceStack> leaf, CommandSpec<CommandSourceStack> spec) {
+        logger.debug("(" + spec.path() + ") leaf: " + leaf);
+        ArgumentBuilder<CommandSourceStack, ?> argBuilder = leaf.createBuilder();
+        Class<?>[] argTypes = spec.args();
+        
+        logger.trace("Creating {} with args {}", spec.path(), spec.args());
+
+        for(int i = 0; i < argTypes.length; ++i) {
+            Class<?> type = argTypes[i];
+            String argName = "arg" + i;
+
+            if(type == StringType.SINGLE_WORD.getClass()) {
+                argBuilder = argBuilder.then(Commands.argument(argName, StringArgumentType.word()));
+            } else if(type == StringType.QUOTABLE_PHRASE.getClass()) {
+                argBuilder = argBuilder.then(Commands.argument(argName, StringArgumentType.string()));
+            } else if(type == StringType.GREEDY_PHRASE.getClass()) {
+                argBuilder = argBuilder.then(Commands.argument(argName, StringArgumentType.greedyString()));
+            } else if(type == int.class || type == Integer.class) {
+                argBuilder = argBuilder.then(Commands.argument(argName, IntegerArgumentType.integer()));
+            }
+        }
+
+        if(spec.handler() != null) {
+            argBuilder.executes(spec.handler());
+            logger.debug("(" + spec.path() +") argBuilder: " + argBuilder);
+
+        } else {
+            logger.warn("Handler for {} is null", spec.path());
+        }
+
+        return argBuilder.build();
     }
     
     public static AnkyPlugin getInstance() {
