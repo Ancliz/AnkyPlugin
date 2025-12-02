@@ -2,6 +2,7 @@ package me.ancliz.minecraft.commands;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,16 +15,20 @@ import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeMirror;
 import javax.tools.JavaFileObject;
 import com.google.auto.service.AutoService;
+import me.ancliz.minecraft.annotations.BrigadierCommandMapping;
 
 @AutoService(Processor.class)
 @SupportedSourceVersion(SourceVersion.RELEASE_21)
 @SupportedAnnotationTypes("me.ancliz.minecraft.annotations.BrigadierCommandMapping")
 public class BrigadierCommandMappingProcessor extends AbstractProcessor {
-    
+
     private static final class Mapping {
         final String root;
         final String path;
@@ -47,6 +52,47 @@ public class BrigadierCommandMappingProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        Set<? extends Element> annotated = roundEnv.getElementsAnnotatedWith(BrigadierCommandMapping.class);
+
+        if(annotated.isEmpty()) {
+            return false;
+        }
+
+        List<Mapping> mappings = new ArrayList<>();
+
+        for(Element element : annotated) {
+            if(element.getKind() != ElementKind.METHOD) {
+                // TODO
+            }
+
+            ExecutableElement handler = (ExecutableElement) element;
+            BrigadierCommandMapping anno = handler.getAnnotation(BrigadierCommandMapping.class);
+
+            String path = anno.command();
+            int idx = path.indexOf('.');
+            String root = (idx == -1) ? path : path.substring(0, idx);
+
+            List<? extends AnnotationValue> argValues =
+                getHandlerArgTypes(handler, BrigadierCommandMapping.class, "args");
+
+            List<String> argTypeLiterals = new ArrayList<>();
+            TypeElement type = (TypeElement) handler.getEnclosingElement();
+            String fqcn = type.getQualifiedName().toString();
+            String handlerName = handler.getSimpleName().toString();
+
+            for(AnnotationValue av : argValues) {
+                TypeMirror tm = (TypeMirror) av.getValue();
+                argTypeLiterals.add(tm.toString() + ".class");
+            }
+
+            mappings.add(new Mapping(root, path, fqcn, handlerName, argTypeLiterals));
+        }
+
+        try {
+            generateRegistry(mappings);
+        } catch(IOException e) {
+            throw new RuntimeException(e);
+        }
 
         return false;
     }
