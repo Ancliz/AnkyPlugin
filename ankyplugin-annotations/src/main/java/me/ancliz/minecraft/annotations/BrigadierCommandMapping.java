@@ -10,6 +10,6 @@ import java.lang.annotation.Target;
 public @interface BrigadierCommandMapping {
 
     String command();
-    Class<?>[] args() default {};
+    String[] args() default {};
         
 }

@@ -19,7 +19,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
 import javax.tools.JavaFileObject;
 import com.google.auto.service.AutoService;
 import me.ancliz.minecraft.annotations.BrigadierCommandMapping;
@@ -72,19 +71,11 @@ public class BrigadierCommandMappingProcessor extends AbstractProcessor {
             int idx = path.indexOf('.');
             String root = (idx == -1) ? path : path.substring(0, idx);
 
-            List<? extends AnnotationValue> argValues =
-                getHandlerArgTypes(handler, BrigadierCommandMapping.class, "args");
-
-            List<String> argTypeLiterals = new ArrayList<>();
             TypeElement type = (TypeElement) handler.getEnclosingElement();
             String fqcn = type.getQualifiedName().toString();
             String handlerName = handler.getSimpleName().toString();
-
-            for(AnnotationValue av : argValues) {
-                TypeMirror tm = (TypeMirror) av.getValue();
-                argTypeLiterals.add(tm.toString() + ".class");
-            }
-
+            List<String> argTypeLiterals = getHandlerArgTypes(handler, BrigadierCommandMapping.class, "args");
+            
             mappings.add(new Mapping(root, path, fqcn, handlerName, argTypeLiterals));
         }
 
@@ -97,7 +88,8 @@ public class BrigadierCommandMappingProcessor extends AbstractProcessor {
         return false;
     }
     
-    private List<? extends AnnotationValue> getHandlerArgTypes(ExecutableElement method, Class<?> annoType, String argsElement) {
+    @SuppressWarnings("unchecked")
+    private List<String> getHandlerArgTypes(ExecutableElement method, Class<?> annoType, String argsElement) {
         for(AnnotationMirror anno : method.getAnnotationMirrors()) {
             if(!((TypeElement) anno.getAnnotationType().asElement())
                     .getQualifiedName().contentEquals(annoType.getName())) {
@@ -106,9 +98,13 @@ public class BrigadierCommandMappingProcessor extends AbstractProcessor {
 
             for(Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> entry : anno.getElementValues().entrySet()) {
                 if(entry.getKey().getSimpleName().contentEquals(argsElement)) {
+                    List<? extends AnnotationValue> values = (List<? extends AnnotationValue>) entry.getValue().getValue();
+                    List<String> list = new ArrayList<>();
 
-                    @SuppressWarnings("unchecked")
-                    List<? extends AnnotationValue> list = (List<? extends AnnotationValue>) entry.getValue().getValue();
+                    for(AnnotationValue av : values) {
+                        list.add(((String) av.getValue()).toLowerCase());
+                    }
+                    
                     return list;
                 }
             }
@@ -154,11 +150,11 @@ public class BrigadierCommandMappingProcessor extends AbstractProcessor {
                     enclosingClassVar = enclosingClasses.get(m.fqcn);
                 }
 
-                w.write("\t\tlist.add(new CommandSpec<CommandSourceStack>(\"" + m.root + "\", \"" + m.path + "\", new Class<?>[] {");
+                w.write("\t\tlist.add(new CommandSpec<CommandSourceStack>(\"" + m.root + "\", \"" + m.path + "\", new String[] {");
                 
                 for(int i = 0; i < m.argTypes.size(); ++i) {
                     if(i > 0) w.write(", ");
-                    w.write(m.argTypes.get(i));
+                    w.write("\"" + m.argTypes.get(i) + "\"");
                 }
 
                 w.write("}, ");

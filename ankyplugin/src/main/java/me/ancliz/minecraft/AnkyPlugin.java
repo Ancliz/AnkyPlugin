@@ -24,7 +24,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.google.common.base.Charsets;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType.StringType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -228,10 +227,9 @@ public abstract class AnkyPlugin extends JavaPlugin {
         });
     }
 
-    private void createBrigadierCommands(
-        Map<String, LiteralCommandNode<CommandSourceStack>> roots,
-        Map<String, CommandNode<CommandSourceStack>> nodes,
-        CommandSpec<CommandSourceStack> spec) {
+    private void createBrigadierCommands(Map<String, LiteralCommandNode<CommandSourceStack>> roots,
+                                         Map<String, CommandNode<CommandSourceStack>> nodes,
+                                         CommandSpec<CommandSourceStack> spec) {    
         String[] parts = spec.path().split("\\.");
         String rootName = parts[0];
 
@@ -268,7 +266,6 @@ public abstract class AnkyPlugin extends JavaPlugin {
         } else {
             CommandNode<CommandSourceStack> node = Commands.literal(lastCommand).build();
             var child = attachArgsAndHandler(node, spec);
-
             logger.debug("(" + spec.path() + ") current: " + current);
 
             current.addChild(child);
@@ -283,36 +280,47 @@ public abstract class AnkyPlugin extends JavaPlugin {
     private CommandNode<CommandSourceStack> attachArgsAndHandler(CommandNode<CommandSourceStack> leaf, CommandSpec<CommandSourceStack> spec) {
         logger.debug("(" + spec.path() + ") leaf: " + leaf);
         ArgumentBuilder<CommandSourceStack, ?> argBuilder = leaf.createBuilder();
-        Class<?>[] argTypes = spec.args();
-        
+        String[] argTypes = spec.args();
+
         logger.trace("Creating {} with args {}", spec.path(), spec.args());
 
-        for(int i = 0; i < argTypes.length; ++i) {
-            Class<?> type = argTypes[i];
-            String argName = "arg" + i;
-
-            if(type == StringType.SINGLE_WORD.getClass()) {
-                argBuilder = argBuilder.then(Commands.argument(argName, StringArgumentType.word()));
-            } else if(type == StringType.QUOTABLE_PHRASE.getClass()) {
-                argBuilder = argBuilder.then(Commands.argument(argName, StringArgumentType.string()));
-            } else if(type == StringType.GREEDY_PHRASE.getClass()) {
-                argBuilder = argBuilder.then(Commands.argument(argName, StringArgumentType.greedyString()));
-            } else if(type == int.class || type == Integer.class) {
-                argBuilder = argBuilder.then(Commands.argument(argName, IntegerArgumentType.integer()));
-            }
-        }
-
-        if(spec.handler() != null) {
-            argBuilder.executes(spec.handler());
-            logger.debug("(" + spec.path() +") argBuilder: " + argBuilder);
-
-        } else {
-            logger.warn("Handler for {} is null", spec.path());
-        }
+        if(spec.args().length > 0) { argBuilder = depthNestedArgs(argBuilder, spec, argTypes, 0); }
+        else                       { argBuilder.executes(spec.handler());                         }
 
         return argBuilder.build();
     }
-    
+
+    private ArgumentBuilder<CommandSourceStack, ?> depthNestedArgs(ArgumentBuilder<CommandSourceStack, ?> argBuilder, 
+                                                                   CommandSpec<CommandSourceStack> spec, 
+                                                                   String[] argTypes, 
+                                                                   int depth) {
+        if(depth < argTypes.length) {
+            logger.debug("({}) argBuilder: {} for '{}' at depth {} ", spec.path(), argBuilder, argTypes[depth], depth);
+        }
+
+        if(depth >= argTypes.length) {
+            logger.debug("({}) argBuilder: {} attaching handler", spec.path(), argBuilder);
+            argBuilder.executes(spec.handler());
+        } else {
+            var nextBuilder = argTypeSwitch(argTypes[depth], "arg" + depth);
+            var result = depthNestedArgs(nextBuilder, spec, argTypes, depth + 1);
+            logger.debug("{} - chaining {}, from depth {}", depth, result, depth + 1);
+            argBuilder.then(result);
+        }
+
+        return argBuilder;
+    }
+
+    private ArgumentBuilder<CommandSourceStack, ?> argTypeSwitch(String type, String argName) {
+        switch(type) {
+            case "word":    return Commands.argument(argName, StringArgumentType.word());
+            case "quote":   return Commands.argument(argName, StringArgumentType.string());
+            case "string":  return Commands.argument(argName, StringArgumentType.greedyString());
+            case "integer": return Commands.argument(argName, IntegerArgumentType.integer());
+            default:        throw new IllegalArgumentException("Invalid arugment type '" + type + "'.");
+        }
+    }
+
     public static AnkyPlugin getInstance() {
         return instance;
     }
