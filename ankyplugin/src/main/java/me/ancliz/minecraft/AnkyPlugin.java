@@ -264,14 +264,15 @@ public abstract class AnkyPlugin extends JavaPlugin {
             var child = attachArgsAndHandler(node, spec);
             roots.put(rootName, (LiteralCommandNode<CommandSourceStack>) child);
         } else {
+            if(nodes.get(path) != null && lastCommand.equals(parts[parts.length-1])) {
+                logger.error("Command '{}' already has a registered handler. If this is done to support execution "
+                           + "with a variable number of args, handle this in a single handler only.", path);
+                return;
+            }
             CommandNode<CommandSourceStack> node = Commands.literal(lastCommand).build();
             var child = attachArgsAndHandler(node, spec);
-            logger.debug("(" + spec.path() + ") current: " + current);
-
             current.addChild(child);
             current = child;
-
-            logger.debug("(" + spec.path() + ") current: " + current);
         }
         
         nodes.put(path, current);  
